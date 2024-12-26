@@ -11,6 +11,8 @@ import {
   CFormTextarea,
   CRow,
 } from '@coreui/react'
+import { db } from '../../firebaseConfig/firebase'
+import { collection, addDoc } from 'firebase/firestore'
 
 const AddCategory = () => {
   const [categoryData, setCategoryData] = useState({
@@ -19,24 +21,62 @@ const AddCategory = () => {
     categoryImage: null,
   })
 
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
   // Handle input change
   const handleInputChange = (e) => {
     const { id, value } = e.target
     setCategoryData({ ...categoryData, [id]: value })
   }
 
-  // Handle file input change
+  // Handle file input change (convert image to Base64)
   const handleFileChange = (e) => {
     const { files } = e.target
     if (files && files[0]) {
-      setCategoryData({ ...categoryData, categoryImage: files[0] })
+      const file = files[0]
+      // Convert the image to Base64
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setCategoryData({ ...categoryData, categoryImage: reader.result })
+      }
+      reader.readAsDataURL(file)
     }
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    console.log('Category Data Submitted:', categoryData)
-    // Add logic to send categoryData to your API or server here
+
+    if (!categoryData.categoryImage) {
+      setError('Please upload a category image.')
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      // Save category data to Firestore
+      const categoriesCollection = collection(db, 'categories')
+      await addDoc(categoriesCollection, {
+        categoryName: categoryData.categoryName,
+        categoryDescription: categoryData.categoryDescription,
+        categoryImage: categoryData.categoryImage, // Storing the Base64 image string
+      })
+
+      // Reset form data
+      setCategoryData({
+        categoryName: '',
+        categoryDescription: '',
+        categoryImage: null,
+      })
+      alert('Category added successfully!')
+    } catch (err) {
+      console.error('Error adding category:', err)
+      setError('Failed to add category.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -80,8 +120,9 @@ const AddCategory = () => {
                   required
                 />
               </div>
-              <CButton type="submit" color="primary">
-                Submit
+              {error && <p className="text-danger">{error}</p>}
+              <CButton type="submit" color="primary" disabled={loading}>
+                {loading ? 'Adding...' : 'Submit'}
               </CButton>
             </CForm>
           </CCardBody>

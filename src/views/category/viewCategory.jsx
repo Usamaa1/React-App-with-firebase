@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   CRow,
   CCol,
@@ -13,42 +13,51 @@ import {
   CTableDataCell,
   CButton,
 } from '@coreui/react'
+import { db } from '../../firebaseConfig/firebase' // Make sure this is correctly imported
+import { collection, getDocs } from 'firebase/firestore'
 
 const ViewCategory = () => {
-    const categories = [
-        {
-          categoryName: 'Electronics',
-          categoryDescription: 'Devices and gadgets like smartphones, laptops, and accessories.',
-          categoryImage: 'https://via.placeholder.com/50', // Placeholder image
-        },
-        {
-          categoryName: 'Clothing',
-          categoryDescription: 'Apparel for men, women, and children including shirts, pants, and dresses.',
-          categoryImage: 'https://via.placeholder.com/50', // Placeholder image
-        },
-        {
-          categoryName: 'Home Appliances',
-          categoryDescription: 'Products to help with daily tasks around the house, like washing machines and refrigerators.',
-          categoryImage: 'https://via.placeholder.com/50', // Placeholder image
-        },
-        {
-          categoryName: 'Books',
-          categoryDescription: 'Books in various genres such as fiction, non-fiction, and educational materials.',
-          categoryImage: 'https://via.placeholder.com/50', // Placeholder image
-        },
-        {
-          categoryName: 'Toys',
-          categoryDescription: 'Fun and educational toys for children of all ages.',
-          categoryImage: 'https://via.placeholder.com/50', // Placeholder image
-        },
-        {
-          categoryName: 'Sports & Outdoors',
-          categoryDescription: 'Equipment and accessories for various outdoor and indoor sports.',
-          categoryImage: 'https://via.placeholder.com/50', // Placeholder image
-        },
-      ]
-      
-      
+  const [categories, setCategories] = useState([]) // State to store fetched categories
+  const [loading, setLoading] = useState(true) // To track loading state
+  const [error, setError] = useState(null) // To track any errors
+
+  // Fetch categories from Firestore
+  const fetchCategories = async () => {
+    try {
+      const categorySnapshot = await getDocs(collection(db, 'categories'))
+      const categoryList = categorySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }))
+      setCategories(categoryList)
+    } catch (err) {
+      console.error('Error fetching categories:', err)
+      setError('Failed to load categories.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchCategories()
+  }, [])
+
+  const handleEdit = (index) => {
+    console.log('Edit category at index:', index)
+  }
+
+  const handleDelete = (index) => {
+    console.log('Delete category at index:', index)
+  }
+
+  if (loading) {
+    return <p>Loading categories...</p>
+  }
+
+  if (error) {
+    return <p className="text-danger">{error}</p>
+  }
+
   return (
     <CRow>
       <CCol xs={12}>
@@ -69,7 +78,7 @@ const ViewCategory = () => {
               </CTableHead>
               <CTableBody>
                 {categories.map((category, index) => (
-                  <CTableRow key={index}>
+                  <CTableRow key={category.id}>
                     <CTableHeaderCell>{index + 1}</CTableHeaderCell>
                     <CTableDataCell>{category.categoryName}</CTableDataCell>
                     <CTableDataCell>{category.categoryDescription}</CTableDataCell>
